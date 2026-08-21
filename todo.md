@@ -31,3 +31,8 @@
 - [x] Extend Manage Trip with cancellation/refund and flight-status-alert controls.
 - [x] Add global currency, language, RTL-ready, time-zone, international-name, phone/address, passport/visa reminder, legal notice, and support controls.
 - [x] Add tests and responsive validation for the expanded first-version prototype.
+- [x] Define mock inventory, seat-layout, saved-route, and dynamic-price data contracts for the interactive booking enhancements.
+- [x] Replace the basic seat grid with a visual aircraft-cabin seat-selection map showing available, occupied, preferred, and extra-legroom seats.
+- [x] Add saved favorite routes with configurable price targets and visible price-drop alert feedback.
+- [x] Add a mock API-backed airline-inventory experience with simulated availability, dynamic pricing, loading, and refresh controls in search results.
+- [x] Add tests and responsive validation for the seat, route alert, and mock inventory enhancements.

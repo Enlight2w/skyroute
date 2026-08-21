@@ -414,6 +414,22 @@ button:focus-visible, input:focus-visible {
 .result-summary-card strong i { color: var(--sky-clay); font-size: 11px; font-style: normal; }
 .result-summary-card b { font-size: 25px; letter-spacing: -.07em; }
 .result-summary-card .workbench-action { width: max-content; }
+.inventory-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 17px 0; padding: 10px 0; border-bottom: 1px solid var(--sky-pebble); color: #5f5f66; font-size: 11px; font-weight: 800; }
+.inventory-status span { display: inline-flex; align-items: center; gap: 7px; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: #61b59d; box-shadow: 0 0 0 4px #e6f4ef; }
+.inventory-status button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--sky-ink); border-radius: 999px; background: #fff; color: var(--sky-ink); font-size: 11px; font-weight: 900; }
+.inventory-status button:disabled { opacity: .55; }
+.is-spinning { animation: inventory-spin 1s linear infinite; }
+.route-watch-card { display: grid; gap: 13px; margin-top: 16px; padding: 17px; background: #edf0ee; }
+.route-watch-card > div:first-child { display: flex; gap: 10px; align-items: start; }
+.route-watch-card strong { display: block; font-size: 13px; }
+.route-watch-card span { display: block; margin-top: 3px; color: #696970; font-size: 11px; line-height: 1.45; }
+.route-watch-controls { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px; }
+.route-watch-controls label { display: grid; gap: 4px; color: #696970; font-size: 10px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.route-watch-controls input { width: 96px; padding: 9px; border: 1px solid var(--sky-pebble); background: #fff; color: var(--sky-ink); font-size: 13px; font-weight: 900; }
+.route-watch-controls button { display: inline-flex; align-items: center; gap: 6px; padding: 10px 11px; border: 1px solid var(--sky-ink); border-radius: 999px; background: #fff; color: var(--sky-ink); font-size: 11px; font-weight: 900; }
+.route-watch-controls button.is-saved { background: var(--sky-ink); color: #fff; }
+.price-drop-alert { display: flex; gap: 7px; padding: 10px; border-left: 3px solid var(--sky-clay); background: #fff; color: #72402f; font-size: 11px; font-weight: 800; line-height: 1.45; }
 .itinerary-band { display: grid; gap: 8px; padding: 21px 0; border-bottom: 1px solid var(--sky-pebble); }
 .itinerary-band span { color: #73737a; font-size: 12px; font-weight: 800; }
 .itinerary-band strong { font-size: 22px; letter-spacing: -.04em; }
@@ -449,6 +465,30 @@ button:focus-visible, input:focus-visible {
 .seat-map button.is-selected { border-color: var(--sky-clay); background: var(--sky-clay); color: #fff; }
 .seat-map button.is-unavailable { opacity: .36; text-decoration: line-through; }
 .seat-and-addon-grid p { color: #66666d; font-size: 12px; }
+.seat-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 9px 0; }
+.seat-legend span { display: inline-flex; align-items: center; gap: 5px; color: #64646b; font-size: 10px; font-weight: 800; }
+.seat-legend span::before { content: ""; width: 9px; height: 9px; border: 1px solid var(--sky-pebble); background: #fff; }
+.seat-legend .is-preferred::before { background: #edf0ee; border-color: #9aaba0; }
+.seat-legend .is-extra::before { background: #f8ebe7; border-color: var(--sky-clay); }
+.seat-legend .is-occupied::before { background: #313138; border-color: #313138; }
+.cabin-shell { position: relative; display: grid; gap: 7px; max-width: 380px; margin: 10px auto 0; padding: 17px 18px 20px; border: 1px solid var(--sky-pebble); border-radius: 72px 72px 22px 22px; background: linear-gradient(90deg, #f8f8f5 0 45%, #fff 45% 55%, #f8f8f5 55%); }
+.cabin-shell::before, .cabin-shell::after { content: ""; position: absolute; top: 88px; width: 27px; height: 142px; border: 1px solid var(--sky-pebble); background: #f4f4f1; z-index: 0; }
+.cabin-shell::before { left: -27px; border-right: 0; }
+.cabin-shell::after { right: -27px; border-left: 0; }
+.cabin-nose { display: grid; place-items: center; width: 46px; height: 27px; margin: -9px auto 1px; border: 1px solid var(--sky-pebble); border-radius: 50% 50% 10px 10px; background: #fff; color: var(--sky-clay); }
+.seat-column-head, .cabin-row { position: relative; z-index: 1; display: grid; grid-template-columns: 23px repeat(2, 1fr) 30px repeat(2, 1fr); gap: 6px; align-items: center; }
+.seat-column-head { color: #73737a; font-size: 10px; font-weight: 900; text-align: center; }
+.seat-column-head i { color: #a1a1a5; font-size: 8px; font-style: normal; letter-spacing: .04em; text-transform: uppercase; }
+.cabin-seat { display: grid; place-items: center; gap: 1px; min-height: 43px; padding: 3px; border: 1px solid var(--sky-pebble); background: #fff; color: var(--sky-ink); transition: transform .16s ease, background .16s ease; }
+.cabin-seat:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--sky-ink); }
+.cabin-seat small { font-size: 9px; font-weight: 900; }
+.cabin-seat.is-preferred { border-color: #9aaba0; background: #edf0ee; }
+.cabin-seat.is-extra { border-color: var(--sky-clay); background: #f8ebe7; color: #8d4e3a; }
+.cabin-seat.is-occupied { border-color: #313138; background: #313138; color: #fff; cursor: not-allowed; opacity: .86; }
+.cabin-seat.is-selected { outline: 3px solid var(--sky-ink); outline-offset: 2px; background: var(--sky-ink); color: #fff; }
+.row-number { color: #8a8a90; font-size: 10px; font-weight: 900; text-align: center; }
+.cabin-tail { width: 42%; height: 9px; margin: 4px auto -10px; border: 1px solid var(--sky-pebble); border-bottom: 0; background: #fff; }
+@keyframes inventory-spin { to { transform: rotate(360deg); } }
 .addon-choice { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding: 11px; border: 1px solid var(--sky-pebble); background: #fff; color: #54545b; text-align: left; font-size: 12px; font-weight: 800; }
 .addon-choice.is-selected { border-color: var(--sky-ink); background: #edf0ee; color: var(--sky-ink); }
 .payment-methods { margin: 20px 0; }

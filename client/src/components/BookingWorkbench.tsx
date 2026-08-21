@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   Armchair,
   BellRing,
+  Bookmark,
   CalendarDays,
   CalendarPlus,
   Check,
@@ -20,6 +21,7 @@ import {
   Phone,
   Plane,
   ReceiptText,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   Ticket,
@@ -28,6 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { bookingStepFor, formatBookingPrice, type Currency } from "@/lib/bookingPrototypeLogic";
+import { trpc } from "@/lib/trpc";
 
 type PrototypePage =
   | "Home / Flight Search"
@@ -52,6 +55,23 @@ const pages: PrototypePage[] = [
   "Manage Trip",
 ];
 
+const prototypePageByHash: Record<string, PrototypePage> = {
+  "#home-flight-search": "Home / Flight Search",
+  "#search-results": "Search Results",
+  "#flight-details": "Flight Details",
+  "#fare-comparison": "Fare Comparison",
+  "#passenger-details": "Passenger Details",
+  "#seats-add-ons": "Seats & Add-ons",
+  "#payment": "Payment",
+  "#booking-confirmation": "Booking Confirmation",
+  "#manage-trip": "Manage Trip",
+};
+
+function getPrototypePageFromHash(): PrototypePage {
+  if (typeof window === "undefined") return "Home / Flight Search";
+  return prototypePageByHash[window.location.hash] ?? "Home / Flight Search";
+}
+
 const localFlight = {
   depart: "Fri, Aug 28 · 09:15",
   arrive: "Fri, Aug 28 · 20:30",
@@ -61,13 +81,23 @@ const localFlight = {
 
 const currencyOptions: Currency[] = ["USD", "EUR", "GBP", "AED"];
 const addOns = ["Extra baggage", "Plant-forward meal", "Travel insurance", "Airport transfer", "Lounge access"];
+type SeatKind = "available" | "occupied" | "preferred" | "extra";
+
+const cabinRows: { row: number; seats: { code: string; kind: SeatKind }[] }[] = [
+  { row: 1, seats: [{ code: "1A", kind: "extra" }, { code: "1B", kind: "preferred" }, { code: "1C", kind: "preferred" }, { code: "1D", kind: "extra" }] },
+  { row: 2, seats: [{ code: "2A", kind: "preferred" }, { code: "2B", kind: "occupied" }, { code: "2C", kind: "available" }, { code: "2D", kind: "preferred" }] },
+  { row: 3, seats: [{ code: "3A", kind: "available" }, { code: "3B", kind: "available" }, { code: "3C", kind: "available" }, { code: "3D", kind: "occupied" }] },
+  { row: 4, seats: [{ code: "4A", kind: "available" }, { code: "4B", kind: "occupied" }, { code: "4C", kind: "available" }, { code: "4D", kind: "available" }] },
+  { row: 5, seats: [{ code: "5A", kind: "available" }, { code: "5B", kind: "available" }, { code: "5C", kind: "occupied" }, { code: "5D", kind: "available" }] },
+];
+const seatSurcharges: Record<SeatKind, number> = { available: 0, occupied: 0, preferred: 12, extra: 26 };
 
 function ActionButton({ children, onClick, secondary = false }: { children: React.ReactNode; onClick: () => void; secondary?: boolean }) {
   return <button className={`workbench-action ${secondary ? "is-secondary" : ""}`} onClick={onClick}>{children}<ChevronRight size={15} /></button>;
 }
 
 export default function BookingWorkbench() {
-  const [page, setPage] = useState<PrototypePage>("Home / Flight Search");
+  const [page, setPage] = useState<PrototypePage>(getPrototypePageFromHash);
   const [tripType, setTripType] = useState("Round-trip");
   const [flexibleDates, setFlexibleDates] = useState(true);
   const [currency, setCurrency] = useState<Currency>("USD");
@@ -79,19 +109,31 @@ export default function BookingWorkbench() {
   const [paymentMethod, setPaymentMethod] = useState("Card");
   const [confirmationChannels, setConfirmationChannels] = useState<string[]>(["Email"]);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [inventoryRefresh, setInventoryRefresh] = useState(0);
+  const [routeSaved, setRouteSaved] = useState(false);
+  const [priceTarget, setPriceTarget] = useState(450);
+  const { data: inventory, isFetching: inventoryLoading } = trpc.inventory.search.useQuery({ refresh: inventoryRefresh });
 
-  const total = useMemo(() => 462 + selectedAddOns.length * 18 + (selectedFare === "Flex" ? 136 : selectedFare === "Business" ? 524 : 0), [selectedAddOns, selectedFare]);
+  const selectedSeatData = cabinRows.flatMap(row => row.seats).find(seat => seat.code === selectedSeat);
+  const seatSurcharge = selectedSeatData ? seatSurcharges[selectedSeatData.kind] : 0;
+  const total = useMemo(() => 462 + selectedAddOns.length * 18 + seatSurcharge + (selectedFare === "Flex" ? 136 : selectedFare === "Business" ? 524 : 0), [selectedAddOns, selectedFare, seatSurcharge]);
+  const primaryQuote = inventory?.flights[0];
+  const priceDropReached = Boolean(routeSaved && primaryQuote && primaryQuote.totalPrice <= priceTarget);
   const toggleFilter = (value: string) => setFilters(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
   const toggleAddOn = (value: string) => setSelectedAddOns(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
   const toggleChannel = (value: string) => setConfirmationChannels(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
-  const advance = (next: PrototypePage) => setPage(next);
+  const advance = (next: PrototypePage) => {
+    setPage(next);
+    const nextHash = Object.entries(prototypePageByHash).find(([, pageName]) => pageName === next)?.[0];
+    if (nextHash) window.history.replaceState(null, "", nextHash);
+  };
 
   return (
     <section className="workbench-section" aria-labelledby="prototype-title" dir={language === "Arabic" ? "rtl" : "ltr"}>
       <div className="site-shell">
         <div className="workbench-heading">
           <div><span className="section-kicker">Working prototype</span><h2 id="prototype-title">Book, prepare, and manage — in one flow.</h2></div>
-          <p>The screens below complete the requested first version. Every control is interactive, using local prototype data rather than live airline inventory or payment credentials.</p>
+          <p>The screens below complete the requested first version. Search Results now reads from a safe mock airline-inventory contract, with dynamic quotes and availability for prototype testing.</p>
         </div>
 
         <div className="workbench-settings" aria-label="Global booking settings">
@@ -114,11 +156,13 @@ export default function BookingWorkbench() {
         </div>}
 
         {page === "Search Results" && <div className="prototype-panel">
-          <div className="panel-intro"><div><span className="panel-eyebrow">Search Results</span><h3>Compare the trade-offs before you commit.</h3></div><span className="prototype-total">From {formatBookingPrice(418, currency)}</span></div>
+          <div className="panel-intro"><div><span className="panel-eyebrow">Search Results</span><h3>Compare the trade-offs before you commit.</h3></div><span className="prototype-total">From {formatBookingPrice(primaryQuote?.totalPrice ?? 418, currency)}</span></div>
+          <div className="inventory-status"><span><span className="live-dot" />{inventory?.provider ?? "Loading mock airline inventory"} · {inventory?.refreshedLabel ?? "Fetching quote"}</span><button onClick={() => setInventoryRefresh(value => value + 1)} disabled={inventoryLoading}><RefreshCw size={14} className={inventoryLoading ? "is-spinning" : ""} />Refresh quote</button></div>
           <div className="nearby-strip"><span>Cheaper nearby dates</span>{["Thu 28 · $446", "Fri 29 · $418", "Sat 30 · $431", "Tue 2 · $405"].map((date, index) => <button key={date} className={index === 3 ? "is-cheapest" : ""}>{date}</button>)}</div>
           <div className="full-filter-row">{["Price", "Stops", "Departure time", "Arrival time", "Airline", "Baggage", "Carbon estimate"].map(filter => <button key={filter} className={filters.includes(filter) ? "is-active" : ""} onClick={() => toggleFilter(filter)}>{filter}</button>)}</div>
           <div className="sort-row"><span>Sort by</span>{["Cheapest", "Fastest", "Best Value"].map(sort => <button key={sort} className={filters.includes(sort) ? "is-active" : ""} onClick={() => setFilters(active => [...active.filter(item => !["Cheapest", "Fastest", "Best Value"].includes(item)), sort])}>{sort}</button>)}</div>
-          <article className="result-summary-card"><div><span>SkyRoute Air · SK 218</span><strong>09:15 JFK <i>07h 15m nonstop</i> 20:30 LIS</strong><small>1 checked bag · Credit or refund · 211 kg CO₂e</small></div><div><b>{formatBookingPrice(462, currency)}</b><small>Total including taxes</small><ActionButton onClick={() => advance("Flight Details")}>Details</ActionButton></div></article>
+          {(inventory?.flights ?? []).map(flight => <article className="result-summary-card" key={flight.id}><div><span>{flight.airline} · {flight.flightNumber}</span><strong>{flight.departureTime} <i>{flight.duration}</i> {flight.arrivalTime}</strong><small>{flight.baggage} · {flight.refund} · {flight.carbonKg} kg CO₂e · {flight.seatsRemaining} seats left</small></div><div><b>{formatBookingPrice(flight.totalPrice, currency)}</b><small>Total including taxes</small><ActionButton onClick={() => advance("Flight Details")}>Details</ActionButton></div></article>)}
+          <div className="route-watch-card"><div><Bookmark size={19} /><div><strong>Save favorite route</strong><span>JFK → LIS · receive a visible alert when the live mock quote meets your target.</span></div></div><div className="route-watch-controls"><label>Alert me below <input type="number" value={priceTarget} onChange={event => setPriceTarget(Number(event.target.value) || 0)} /></label><button className={routeSaved ? "is-saved" : ""} onClick={() => { setRouteSaved(value => !value); toast.success(routeSaved ? "Favorite route removed" : "Favorite route saved"); }}><Bookmark size={14} />{routeSaved ? "Saved" : "Save route"}</button></div>{priceDropReached && <div className="price-drop-alert"><BellRing size={16} /><span>Price drop alert: the current quote of {formatBookingPrice(primaryQuote?.totalPrice ?? 0, currency)} meets your target of {formatBookingPrice(priceTarget, currency)}.</span></div>}</div>
         </div>}
 
         {page === "Flight Details" && <div className="prototype-panel">
@@ -151,7 +195,7 @@ export default function BookingWorkbench() {
 
         {page === "Seats & Add-ons" && <div className="prototype-panel">
           <div className="panel-intro"><div><span className="panel-eyebrow">Seats & Add-ons</span><h3>Shape the flight around you.</h3></div><Armchair size={25} /></div>
-          <div className="seat-and-addon-grid"><div><span className="sub-label">Seat map</span><div className="seat-map">{["1A", "1B", "1C", "1D", "2A", "2B", "2C", "2D", "3A", "3B", "3C", "3D", "4A", "4B", "4C", "4D"].map(seat => <button key={seat} className={selectedSeat === seat ? "is-selected" : seat === "2B" || seat === "3D" ? "is-unavailable" : ""} onClick={() => seat !== "2B" && seat !== "3D" && setSelectedSeat(seat)} disabled={seat === "2B" || seat === "3D"}>{seat}</button>)}</div><p>Selected: <strong>{selectedSeat}</strong> · Standard seat included</p></div><div><span className="sub-label">Add-ons</span>{addOns.map(addOn => <button className={`addon-choice ${selectedAddOns.includes(addOn) ? "is-selected" : ""}`} key={addOn} onClick={() => toggleAddOn(addOn)}><span>{addOn}</span><Check size={15} /></button>)}</div></div>
+          <div className="seat-and-addon-grid"><div><span className="sub-label">Visual seat selection</span><div className="seat-legend"><span className="is-available">Available</span><span className="is-preferred">Preferred</span><span className="is-extra">Extra legroom</span><span className="is-occupied">Occupied</span></div><div className="cabin-shell" aria-label="SkyRoute Air seat map"><div className="cabin-nose"><Plane size={19} /></div><div className="seat-column-head"><span>A</span><span>B</span><i>Aisle</i><span>C</span><span>D</span></div>{cabinRows.map(cabinRow => <div className="cabin-row" key={cabinRow.row}><span className="row-number">{cabinRow.row}</span>{cabinRow.seats.map(seat => <button key={seat.code} className={`cabin-seat is-${seat.kind} ${selectedSeat === seat.code ? "is-selected" : ""}`} onClick={() => seat.kind !== "occupied" && setSelectedSeat(seat.code)} disabled={seat.kind === "occupied"} aria-label={`${seat.code}, ${seat.kind === "extra" ? "extra legroom" : seat.kind}`}><Armchair size={15} /><small>{seat.code}</small></button>)}</div>)}<div className="cabin-tail" /></div><p>Selected: <strong>{selectedSeat}</strong> · {selectedSeatData?.kind === "extra" ? `${formatBookingPrice(seatSurcharge, currency)} extra legroom` : selectedSeatData?.kind === "preferred" ? `${formatBookingPrice(seatSurcharge, currency)} preferred seat` : "Standard seat included"}</p></div><div><span className="sub-label">Add-ons</span>{addOns.map(addOn => <button className={`addon-choice ${selectedAddOns.includes(addOn) ? "is-selected" : ""}`} key={addOn} onClick={() => toggleAddOn(addOn)}><span>{addOn}</span><Check size={15} /></button>)}</div></div>
           <div className="total-callout"><span>Updated total including taxes</span><strong>{formatBookingPrice(total, currency)}</strong><ActionButton onClick={() => advance("Payment")}>Continue to payment</ActionButton></div>
         </div>}
 
