@@ -15,6 +15,7 @@ import {
   Globe2,
   HeartHandshake,
   Luggage,
+  KeyRound,
   Mail,
   MapPin,
   MessageCircle,
@@ -27,6 +28,8 @@ import {
   Ticket,
   UserRoundCheck,
   UsersRound,
+  Copy,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { bookingStepFor, formatBookingPrice, type Currency } from "@/lib/bookingPrototypeLogic";
@@ -51,7 +54,8 @@ type PrototypePage =
   | "Payment"
   | "Booking Confirmation"
   | "Manage Trip"
-  | "Notification Center";
+  | "Notification Center"
+  | "API Keys";
 
 const pages: PrototypePage[] = [
   "Home / Flight Search",
@@ -64,6 +68,7 @@ const pages: PrototypePage[] = [
   "Booking Confirmation",
   "Manage Trip",
   "Notification Center",
+  "API Keys",
 ];
 
 const prototypePageByHash: Record<string, PrototypePage> = {
@@ -77,6 +82,7 @@ const prototypePageByHash: Record<string, PrototypePage> = {
   "#booking-confirmation": "Booking Confirmation",
   "#manage-trip": "Manage Trip",
   "#notification-center": "Notification Center",
+  "#api-keys": "API Keys",
 };
 
 function getPrototypePageFromHash(): PrototypePage {
@@ -103,6 +109,7 @@ const cabinRows: { row: number; seats: { code: string; kind: SeatKind }[] }[] = 
   { row: 5, seats: [{ code: "5A", kind: "available" }, { code: "5B", kind: "available" }, { code: "5C", kind: "occupied" }, { code: "5D", kind: "available" }] },
 ];
 const seatSurcharges: Record<SeatKind, number> = { available: 0, occupied: 0, preferred: 12, extra: 26 };
+const apiKeyScopes = ["inventory:read", "notifications:read", "notifications:write"] as const;
 
 function ActionButton({ children, onClick, secondary = false }: { children: React.ReactNode; onClick: () => void; secondary?: boolean }) {
   return <button className={`workbench-action ${secondary ? "is-secondary" : ""}`} onClick={onClick}>{children}<ChevronRight size={15} /></button>;
@@ -135,10 +142,14 @@ export default function BookingWorkbench() {
   const [notificationTiming, setNotificationTiming] = useState("Instant");
   const [notificationFocus, setNotificationFocus] = useState<NotificationEventKey>("priceDrop");
   const [notificationRead, setNotificationRead] = useState<Record<string, boolean>>({ price: false, checkin: false, calendar: true });
+  const [apiKeyName, setApiKeyName] = useState("SkyRoute personal integration");
+  const [apiKeyScopesSelected, setApiKeyScopesSelected] = useState<string[]>(["inventory:read"]);
+  const [newApiKey, setNewApiKey] = useState<string | null>(null);
   const [notificationHydrated, setNotificationHydrated] = useState(false);
   const { isAuthenticated } = useAuth();
   const { data: inventory, isFetching: inventoryLoading } = trpc.inventory.search.useQuery({ refresh: inventoryRefresh });
   const notificationQuery = trpc.notification.get.useQuery(undefined, { enabled: isAuthenticated });
+  const apiKeysQuery = trpc.apiKeys.list.useQuery(undefined, { enabled: isAuthenticated });
   const trpcUtils = trpc.useUtils();
   const saveNotificationPreferences = trpc.notification.savePreferences.useMutation({
     onSuccess: result => {
@@ -154,6 +165,20 @@ export default function BookingWorkbench() {
       trpcUtils.notification.get.invalidate();
     },
     onError: () => toast.error("Sign in to send a mock Email or SMS notification"),
+  });
+  const createManagedApiKey = trpc.apiKeys.create.useMutation({
+    onSuccess: result => {
+      setNewApiKey(result.secret);
+      toast.success("API key created", { description: "Copy it now — it will not be shown again." });
+      trpcUtils.apiKeys.list.invalidate();
+    },
+    onError: () => toast.error("Could not create your API key. Please sign in and try again."),
+  });
+  const revokeManagedApiKey = trpc.apiKeys.revoke.useMutation({
+    onSuccess: result => {
+      toast.success(result.revoked ? "API key revoked" : "API key was already unavailable");
+      trpcUtils.apiKeys.list.invalidate();
+    },
   });
 
   useEffect(() => {
@@ -213,6 +238,13 @@ export default function BookingWorkbench() {
     });
   };
   const deliveryHistory = notificationQuery.data?.deliveryHistory ?? [];
+  const managedApiKeys = apiKeysQuery.data ?? [];
+  const toggleApiScope = (scope: string) => setApiKeyScopesSelected(active => active.includes(scope) ? active.filter(item => item !== scope) : [...active, scope]);
+  const copyNewApiKey = async () => {
+    if (!newApiKey) return;
+    await navigator.clipboard.writeText(newApiKey);
+    toast.success("API key copied. Store it in a secure secret manager.");
+  };
   const toggleFilter = (value: string) => setFilters(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
   const toggleAddOn = (value: string) => setSelectedAddOns(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
   const toggleChannel = (value: string) => setConfirmationChannels(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
@@ -324,6 +356,16 @@ export default function BookingWorkbench() {
           <button className="save-notification-settings" onClick={persistNotificationPreferences} disabled={saveNotificationPreferences.isPending}>{saveNotificationPreferences.isPending ? "Saving notification settings…" : "Save notification settings"}</button>
           <div className="alert-center"><div className="alert-center-heading"><div><span className="sub-label">In-app alert center</span><strong>Flight and route updates</strong></div><button onClick={() => setNotificationRead({ price: true, checkin: true, calendar: true })}>Mark all read</button></div>{alertItems.map(alert => <article className={`in-app-alert ${alert.read ? "is-read" : ""}`} key={alert.id}><span className="alert-context">{alert.context}</span><div><strong>{alert.title}</strong><p>{alert.detail}</p></div><button onClick={() => setNotificationRead(active => ({ ...active, [alert.id]: true }))}>{alert.read ? "Read" : "Mark read"}</button></article>)}</div>
           <div className="delivery-history"><div className="alert-center-heading"><div><span className="sub-label">Mock provider activity</span><strong>Delivery history</strong></div><span>{deliveryHistory.length} logged</span></div>{deliveryHistory.length > 0 ? deliveryHistory.map(delivery => <article key={delivery.id} className="delivery-history-item"><span>{delivery.channel.toUpperCase()}</span><div><strong>{delivery.subject}</strong><p>{delivery.provider} · {delivery.recipientMasked} · {delivery.status}</p></div></article>) : <p>No mock Email or SMS sends yet. Send one from the delivery preview to create a history record.</p>}</div>
+        </div>}
+
+        {page === "API Keys" && <div className="prototype-panel api-key-panel">
+          <div className="panel-intro"><div><span className="panel-eyebrow">Developer access</span><h3>API keys with one-time disclosure.</h3></div><KeyRound size={25} /></div>
+          {!isAuthenticated ? <div className="api-auth-gate"><ShieldCheck size={23} /><div><strong>Sign in to create API keys</strong><p>Keys are tied to your SkyRoute account and are never stored in the browser.</p></div><button onClick={startLogin}>Sign in securely</button></div> : <>
+            <div className="api-key-create-grid"><label>Key name<input value={apiKeyName} onChange={event => setApiKeyName(event.target.value)} maxLength={120} /></label><div><span className="sub-label">Scopes</span><div className="api-scope-list">{apiKeyScopes.map(scope => <button key={scope} className={apiKeyScopesSelected.includes(scope) ? "is-selected" : ""} onClick={() => toggleApiScope(scope)}><Check size={13} />{scope}</button>)}</div></div></div>
+            <button className="create-api-key" disabled={createManagedApiKey.isPending || apiKeyScopesSelected.length === 0} onClick={() => createManagedApiKey.mutate({ name: apiKeyName, scopes: apiKeyScopesSelected as (typeof apiKeyScopes)[number][] })}>{createManagedApiKey.isPending ? "Creating secure API key…" : "Create secure API key"}</button>
+            {newApiKey && <div className="api-key-reveal"><div><span>Copy your key now</span><strong>{newApiKey}</strong><p>This secret will disappear when you close this panel and cannot be retrieved later.</p></div><div><button onClick={() => void copyNewApiKey()}><Copy size={15} />Copy key</button><button onClick={() => setNewApiKey(null)}><EyeOff size={15} />I saved it</button></div></div>}
+            <div className="api-key-list"><div className="alert-center-heading"><div><span className="sub-label">Active access</span><strong>Your API keys</strong></div><span>{managedApiKeys.filter(key => !key.revokedAt).length} active</span></div>{apiKeysQuery.isLoading ? <p>Loading your secure keys…</p> : managedApiKeys.length > 0 ? managedApiKeys.map(key => <article key={key.id} className={`api-key-list-item ${key.revokedAt ? "is-revoked" : ""}`}><KeyRound size={16} /><div><strong>{key.name}</strong><span>{key.keyPrefix} · {key.scopes}</span><small>{key.revokedAt ? "Revoked" : key.lastUsedAt ? `Last used ${new Date(key.lastUsedAt).toLocaleDateString()}` : "Not used yet"}</small></div>{!key.revokedAt && <button onClick={() => revokeManagedApiKey.mutate({ id: key.id })}>Revoke</button>}</article>) : <p>No API keys yet. Create one for a secure personal integration.</p>}</div>
+          </>}
         </div>}
 
         <div className="prototype-stepper" aria-label="Booking workflow status">{["Passenger Details", "Seats & Add-ons", "Payment", "Booking Confirmation"].map((step, index) => <span key={step} className={bookingStepFor(page) > index ? "is-complete" : ""}>{index + 1}. {step}</span>)}</div>

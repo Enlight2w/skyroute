@@ -562,6 +562,35 @@ button:focus-visible, input:focus-visible {
 .delivery-history-item > span { color: var(--sky-clay); font-size: 10px; font-weight: 900; }
 .delivery-history-item strong { display: block; font-size: 12px; }
 .delivery-history-item p { margin: 3px 0 0; color: #727279; font-size: 10px; line-height: 1.35; }
+.api-auth-gate { display: flex; align-items: center; gap: 13px; margin-top: 20px; padding: 18px; background: #edf0ee; }
+.api-auth-gate > div { flex: 1; }
+.api-auth-gate strong { display: block; font-size: 14px; }
+.api-auth-gate p { margin: 4px 0 0; color: #68686f; font-size: 11px; line-height: 1.4; }
+.api-auth-gate button, .create-api-key { padding: 10px 12px; border: 1px solid var(--sky-ink); border-radius: 999px; background: var(--sky-ink); color: #fff; font-size: 11px; font-weight: 900; }
+.api-key-create-grid { display: grid; gap: 17px; margin-top: 21px; }
+.api-key-create-grid label { display: grid; gap: 6px; color: #696970; font-size: 10px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+.api-key-create-grid input { padding: 11px; border: 1px solid var(--sky-pebble); background: #fff; color: var(--sky-ink); font-size: 13px; font-weight: 800; }
+.api-scope-list { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.api-scope-list button { display: inline-flex; align-items: center; gap: 4px; padding: 8px 9px; border: 1px solid var(--sky-pebble); border-radius: 999px; background: #fff; color: #68686f; font-size: 11px; font-weight: 800; }
+.api-scope-list button.is-selected { border-color: var(--sky-ink); background: var(--sky-ink); color: #fff; }
+.create-api-key { margin-top: 18px; }
+.create-api-key:disabled { opacity: .5; }
+.api-key-reveal { display: grid; gap: 13px; margin-top: 19px; padding: 17px; border-left: 3px solid var(--sky-clay); background: #f8ebe7; }
+.api-key-reveal span { color: #875445; font-size: 10px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.api-key-reveal strong { display: block; margin-top: 6px; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.api-key-reveal p { margin: 7px 0 0; color: #6a5a55; font-size: 11px; line-height: 1.4; }
+.api-key-reveal > div:last-child { display: flex; flex-wrap: wrap; gap: 7px; }
+.api-key-reveal button { display: inline-flex; align-items: center; gap: 5px; padding: 8px 9px; border: 1px solid var(--sky-ink); border-radius: 999px; background: #fff; color: var(--sky-ink); font-size: 11px; font-weight: 900; }
+.api-key-list { display: grid; gap: 1px; margin-top: 22px; background: var(--sky-pebble); }
+.api-key-list > p { margin: 0; padding: 15px; background: #fff; color: #727279; font-size: 11px; }
+.api-key-list-item { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 11px; align-items: start; padding: 14px; background: #fff; }
+.api-key-list-item > svg { color: var(--sky-clay); }
+.api-key-list-item strong, .api-key-list-item span, .api-key-list-item small { display: block; }
+.api-key-list-item strong { font-size: 12px; }
+.api-key-list-item span { margin-top: 3px; overflow-wrap: anywhere; color: #67676e; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
+.api-key-list-item small { margin-top: 4px; color: #85858b; font-size: 10px; }
+.api-key-list-item button { padding: 7px 9px; border: 1px solid var(--sky-ink); background: #fff; color: var(--sky-ink); font-size: 10px; font-weight: 900; }
+.api-key-list-item.is-revoked { opacity: .55; }
 
 @media (min-width: 720px) {
   .workbench-heading { grid-template-columns: minmax(0, 1fr) minmax(250px, .65fr); align-items: end; }
@@ -573,6 +602,7 @@ button:focus-visible, input:focus-visible {
   .form-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .seat-and-addon-grid, .payment-grid { grid-template-columns: 1.1fr .9fr; }
   .notification-layout { grid-template-columns: 1fr 1fr; }
+  .api-key-create-grid { grid-template-columns: 1fr 1fr; align-items: end; }
   .manage-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
 }
 @import "tw-animate-css";

@@ -1,7 +1,7 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, notificationDeliveryLogs, notificationPreferences, users } from "../drizzle/schema";
+import { apiKeys, InsertUser, notificationDeliveryLogs, notificationPreferences, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _pool: mysql.Pool | null = null;
@@ -171,4 +171,55 @@ export async function listNotificationDeliveryLogs(userId: number) {
     .where(eq(notificationDeliveryLogs.userId, userId))
     .orderBy(desc(notificationDeliveryLogs.id))
     .limit(12);
+}
+
+export async function createApiKeyRecord(input: {
+  userId: number;
+  name: string;
+  keyPrefix: string;
+  keyHash: string;
+  scopes: string;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(apiKeys).values(input);
+  const result = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, input.keyHash)).limit(1);
+  return result[0];
+}
+
+export async function listApiKeyRecords(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: apiKeys.id,
+    name: apiKeys.name,
+    keyPrefix: apiKeys.keyPrefix,
+    scopes: apiKeys.scopes,
+    lastUsedAt: apiKeys.lastUsedAt,
+    revokedAt: apiKeys.revokedAt,
+    createdAt: apiKeys.createdAt,
+  }).from(apiKeys).where(eq(apiKeys.userId, userId)).orderBy(desc(apiKeys.id));
+}
+
+export async function revokeApiKeyRecord(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(apiKeys).set({ revokedAt: new Date() })
+    .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, userId)));
+  return result[0].affectedRows > 0;
+}
+
+export async function findValidApiKeyRecord(keyHash: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash)).limit(1);
+  const record = result[0];
+  if (!record || record.revokedAt) return undefined;
+  return record;
+}
+
+export async function markApiKeyUsed(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, id));
 }

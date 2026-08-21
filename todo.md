@@ -55,3 +55,7 @@
 - [x] Add a polished sign-in and authenticated account-status experience to the public booking interface.
 - [x] Gate persistent notification settings behind sign-in while preserving a clear unauthenticated preview state.
 - [x] Add authentication-flow regression checks and responsive validation.
+- [x] Define a secure user API-key model with hashed key material, prefix, scope, last-used metadata, and revocation state.
+- [x] Add authenticated API-key generation, one-time disclosure, verification, listing, and revocation backend procedures.
+- [x] Add an authenticated API-key management interface with a copy-once secret reveal and revoke controls.
+- [x] Add security and responsive validation for the API-key capability.

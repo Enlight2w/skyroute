@@ -13,6 +13,9 @@ import {
   saveNotificationPreferences,
 } from "./db";
 import { createMockNotificationDelivery } from "./mockNotificationProvider";
+import { TRPCError } from "@trpc/server";
+import { API_KEY_SCOPES, createApiKey, hashApiKey, type ApiKeyScope, verifyApiKey } from "./apiKeyService";
+import { createApiKeyRecord, findValidApiKeyRecord, listApiKeyRecords, markApiKeyUsed, revokeApiKeyRecord } from "./db";
 
 const notificationPreferencesSchema = z.object({
   priceDropEnabled: z.boolean(),
@@ -27,6 +30,15 @@ const notificationPreferencesSchema = z.object({
   timing: z.string().min(1).max(64),
   priceTarget: z.number().int().min(0).max(100000),
 });
+
+const apiKeyScopesSchema = z.array(z.enum(API_KEY_SCOPES)).min(1).max(API_KEY_SCOPES.length);
+
+export async function verifySkyRouteApiKey(candidate: string) {
+  const record = await findValidApiKeyRecord(hashApiKey(candidate));
+  if (!record || !verifyApiKey(candidate, record.keyHash)) return undefined;
+  await markApiKeyUsed(record.id);
+  return { userId: record.userId, scopes: JSON.parse(record.scopes) as ApiKeyScope[] };
+}
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -65,6 +77,29 @@ export const appRouter = router({
         const delivery = await createNotificationDeliveryLog({ userId: ctx.user.id, eventType: input.eventType, ...mockDelivery });
         return { delivery: delivery ?? mockDelivery, persisted: Boolean(delivery) };
       }),
+  }),
+  apiKeys: router({
+    list: protectedProcedure.query(async ({ ctx }) => listApiKeyRecords(ctx.user.id)),
+    create: protectedProcedure
+      .input(z.object({ name: z.string().trim().min(2).max(120), scopes: apiKeyScopesSchema }))
+      .mutation(async ({ ctx, input }) => {
+        const generated = createApiKey();
+        const record = await createApiKeyRecord({
+          userId: ctx.user.id,
+          name: input.name,
+          keyPrefix: generated.keyPrefix,
+          keyHash: generated.keyHash,
+          scopes: JSON.stringify(input.scopes),
+        });
+        if (!record) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "API key storage is unavailable" });
+        return {
+          apiKey: { id: record.id, name: record.name, keyPrefix: record.keyPrefix, scopes: input.scopes, createdAt: record.createdAt },
+          secret: generated.plainText,
+        };
+      }),
+    revoke: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => ({ revoked: await revokeApiKeyRecord(ctx.user.id, input.id) })),
   }),
 
   // TODO: add feature routers here, e.g.

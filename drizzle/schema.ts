@@ -56,5 +56,18 @@ export const notificationDeliveryLogs = mysqlTable("notification_delivery_logs",
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => [index("notification_delivery_logs_user_idx").on(table.userId)]);
 
+export const apiKeys = mysqlTable("api_keys", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  keyPrefix: varchar("keyPrefix", { length: 32 }).notNull(),
+  keyHash: varchar("keyHash", { length: 64 }).notNull().unique(),
+  scopes: text("scopes").notNull(),
+  lastUsedAt: timestamp("lastUsedAt"),
+  revokedAt: timestamp("revokedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [index("api_keys_user_idx").on(table.userId)]);
+
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 export type NotificationDeliveryLog = typeof notificationDeliveryLogs.$inferSelect;
+export type ApiKey = typeof apiKeys.$inferSelect;
