@@ -24,6 +24,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
+import BookingWorkbench from "@/components/BookingWorkbench";
 import { calculateBestValueScore, sortByArrivalTime, type FlightScoreInput } from "@/lib/flightLogic";
 
 const flexibleDates = [
@@ -309,6 +310,7 @@ export default function Home() {
             <article className="manage-card"><div className="journey-card-top"><div><span className="section-kicker">After you book</span><h2>Post-booking management hub</h2><p>SK 218 · New York to Lisbon · Aug 28</p></div><Plane size={23} color="#ff8566" /></div><div className="manage-actions"><button className="manage-action" onClick={() => toast.message("Flight-change options opened")}><CalendarDays />Change flight</button><button className="manage-action" onClick={() => toast.message("Seat selection opened")}><Armchair />Select seats</button><button className="manage-action" onClick={() => toast.message("Baggage options opened")}><Luggage />Add bags</button><button className="manage-action" onClick={() => toast.message("Check-in will be available 24 hours before departure")}><CircleCheck />Check in</button><button className="manage-action" onClick={() => toast.message("Boarding pass download will be available after check-in")}><Download />Download boarding pass</button><button className="manage-action" onClick={() => toast.message("Wi‑Fi and meal details are included in your trip") }><Wifi />Trip details</button></div><div className="calendar-box"><strong>Calendar integration with pre-flight notifications</strong><span>Add the itinerary to your preferred calendar. The attached event includes a reminder three hours before your flight.</span><button className="calendar-button" onClick={exportCalendarEvent}><CalendarPlus size={14} />Add to calendar</button></div></article>
           </div>
         </section>
+        <BookingWorkbench />
       </main>
       <footer className="site-shell footer">SkyRoute · Transparent fares, flexible dates, and stress-free trip management.</footer>
     </div>

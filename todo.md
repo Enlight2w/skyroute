@@ -20,3 +20,14 @@
 - [x] Add respectful, rights-cleared diverse traveller imagery to the booking experience without stereotyping or labelling people by race or ethnicity.
 - [x] Re-validate the refined desktop and mobile presentation, accessibility, tests, and production build.
 - [x] Add an explicit accessibility regression test covering focus visibility, keyboard-operable controls, and reduced-motion handling after the redesign.
+- [x] Audit the requested Core Pages, Global Features, and Best First Version against the current SkyRoute prototype and document the coverage status.
+- [x] Extend Home / Flight Search with one-way, round-trip, and multi-city selection; Flexible dates; currency and language selectors; recent searches; and popular routes.
+- [x] Complete Search Results filters for price, stops, departure time, arrival time, airline, baggage, and carbon estimate, while preserving cheapest, fastest, and Best Value sorting.
+- [x] Add Flight Details with a full itinerary, fare conditions, and upgrade/baggage options.
+- [x] Add Passenger Details with international-form fields, saved travellers, and special assistance controls.
+- [x] Add Seats & Add-ons with a selectable seat map, baggage, meals, insurance, airport transfer, and lounge choices.
+- [x] Expand Payment with local-currency display, payment-method choices, vouchers, loyalty points, and clear taxes and fees.
+- [x] Add a Booking Confirmation state with booking reference, download itinerary, calendar, Email, SMS, and WhatsApp confirmation choices.
+- [x] Extend Manage Trip with cancellation/refund and flight-status-alert controls.
+- [x] Add global currency, language, RTL-ready, time-zone, international-name, phone/address, passport/visa reminder, legal notice, and support controls.
+- [x] Add tests and responsive validation for the expanded first-version prototype.
