@@ -49,3 +49,9 @@
 - [x] Investigate the deployment timeout using production and development logs plus the deployed build configuration.
 - [x] Apply a focused code or configuration fix if the timeout is project-caused.
 - [x] Rebuild, validate runtime startup, and save a corrected publishable checkpoint.
+- [x] Inspect the service-unavailable deployment error and revalidate the current publishable build.
+- [x] Apply a further project fix only if the investigation shows a project-side deployment cause (not required; the service error is external).
+- [x] Review the existing account integration and authentication guidelines for SkyRoute.
+- [x] Add a polished sign-in and authenticated account-status experience to the public booking interface.
+- [x] Gate persistent notification settings behind sign-in while preserving a clear unauthenticated preview state.
+- [x] Add authentication-flow regression checks and responsive validation.

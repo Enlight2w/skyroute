@@ -689,6 +689,22 @@ button:focus-visible, input:focus-visible {
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
 
+.header-account { display: flex; align-items: center; gap: 8px; }
+.sign-in-button, .account-button, .sign-out-button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--sky-ink); font-size: 12px; font-weight: 900; }
+.sign-in-button { padding: 10px 13px; border-radius: 999px; background: var(--sky-ink); color: #fff; }
+.account-button { padding: 5px 9px 5px 5px; border-radius: 999px; background: #fff; color: var(--sky-ink); }
+.account-avatar { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: var(--sky-clay); color: #fff; font-size: 11px; }
+.sign-out-button { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 50%; background: #fff; color: var(--sky-ink); }
+.account-loading { color: #74747c; font-size: 11px; font-weight: 800; }
+.notification-persistence-banner > span { flex: 1; }
+.notification-persistence-banner button { flex: 0 0 auto; padding: 7px 9px; border: 1px solid var(--sky-ink); border-radius: 999px; background: #fff; color: var(--sky-ink); font-size: 10px; font-weight: 900; }
+
+@media (max-width: 719px) {
+  .account-button > span:not(.account-avatar), .sign-out-button, .account-loading { display: none; }
+  .account-button { padding: 4px; }
+  .sign-in-button { padding: 9px 11px; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

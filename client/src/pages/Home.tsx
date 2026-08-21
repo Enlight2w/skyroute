@@ -12,6 +12,8 @@ import {
   Download,
   Hotel,
   Leaf,
+  LogIn,
+  LogOut,
   Luggage,
   MapPin,
   Menu,
@@ -20,12 +22,15 @@ import {
   SlidersHorizontal,
   Sparkles,
   Ticket,
+  UserRound,
   UsersRound,
   Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
 import BookingWorkbench from "@/components/BookingWorkbench";
 import { calculateBestValueScore, sortByArrivalTime, type FlightScoreInput } from "@/lib/flightLogic";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { startLogin } from "@/const";
 
 const flexibleDates = [
   { day: "Thu", date: "28", fare: 446 },
@@ -112,6 +117,7 @@ export default function Home() {
   const [priceWatchActive, setPriceWatchActive] = useState(false);
   const [activeMapDestination, setActiveMapDestination] = useState("Lisbon");
   const [paymentMethod, setPaymentMethod] = useState("Apple Pay");
+  const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
 
   const visibleFlights = useMemo(() => {
     const enriched = flights.map(flight => ({
@@ -154,7 +160,13 @@ export default function Home() {
           <a href="#inspiration">Trip Inspiration</a>
           <a href="#journey">Manage booking</a>
         </nav>
-        <button className="menu-button" aria-label="Open menu"><Menu size={20} /></button>
+        <div className="header-account">
+          {authLoading ? <span className="account-loading">Checking account</span> : isAuthenticated ? <>
+            <button className="account-button" onClick={() => document.getElementById("prototype-title")?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="Open your SkyRoute account"><span className="account-avatar">{user?.name?.slice(0, 1).toUpperCase() ?? "T"}</span><span>{user?.name?.split(" ")[0] ?? "Traveller"}</span><UserRound size={15} /></button>
+            <button className="sign-out-button" onClick={() => { void logout(); toast.message("Signed out of SkyRoute"); }} aria-label="Sign out"><LogOut size={15} /></button>
+          </> : <button className="sign-in-button" onClick={startLogin}><LogIn size={16} />Sign in</button>}
+          <button className="menu-button" aria-label="Open menu"><Menu size={20} /></button>
+        </div>
       </header>
 
       <main>
