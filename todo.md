@@ -1,0 +1,22 @@
+# Project TODO
+
+- [x] Establish a mobile-first visual system and responsive public navigation for the flight booking experience.
+- [x] Build Flight search with From/To airport fields, travel dates, passenger count, cabin class selection, and promo code field.
+- [x] Add a Flexible date pricing calendar that highlights the cheapest available fares across a date range.
+- [x] Create side-by-side Economy Basic, Economy, Premium, and Business fare comparison cards with baggage, seats, changes, and refunds.
+- [x] Implement Smart flight results filters for cheapest, fastest, Best Value, fewest stops, arrival time, and baggage included.
+- [x] Build detailed flight cards with duration, layovers, aircraft, seat pitch, Wi-Fi, meals, baggage, refunds, Layover quality rating, carbon estimate, and greener flight filter.
+- [x] Add Price Watch route tracking and visible price-drop alert feedback.
+- [x] Build Trip Inspiration with an interactive destination map, weekend escapes, beach trips, and nonstop-from-your-city suggestions.
+- [x] Implement a mobile-first checkout flow with Apple Pay, Google Pay, saved passenger profiles, and a progress indicator.
+- [x] Build post-booking management hub actions to change flights, select seats, add bags, check in, and download boarding passes.
+- [x] Add hotel and recreational area recommendations near the selected destination.
+- [x] Add a calendar-ready reminder flow with a secure backend integration boundary for pre-flight notifications.
+- [x] Document backend handoff boundaries for a Java service and a Rust service without exposing or hardcoding credentials.
+- [x] Add and run Vitest coverage for the core flight-search, scoring, and price-watch logic.
+- [x] Verify desktop and mobile rendering, keyboard accessibility, and production build quality.
+- [x] Integrate the supplied monochrome editorial aviation design direction into the SkyRoute visual system without changing the completed booking capabilities.
+- [x] Create and integrate an animated 3D airplane hero background that respects reduced-motion preferences.
+- [x] Add respectful, rights-cleared diverse traveller imagery to the booking experience without stereotyping or labelling people by race or ethnicity.
+- [x] Re-validate the refined desktop and mobile presentation, accessibility, tests, and production build.
+- [x] Add an explicit accessibility regression test covering focus visibility, keyboard-operable controls, and reduced-motion handling after the redesign.
