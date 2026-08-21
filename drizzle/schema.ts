@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, index, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -25,4 +25,36 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+export const notificationPreferences = mysqlTable("notification_preferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  priceDropEnabled: boolean("priceDropEnabled").default(true).notNull(),
+  flightStatusEnabled: boolean("flightStatusEnabled").default(true).notNull(),
+  checkInEnabled: boolean("checkInEnabled").default(true).notNull(),
+  gateEnabled: boolean("gateEnabled").default(true).notNull(),
+  calendarEnabled: boolean("calendarEnabled").default(true).notNull(),
+  inAppEnabled: boolean("inAppEnabled").default(true).notNull(),
+  emailEnabled: boolean("emailEnabled").default(true).notNull(),
+  smsEnabled: boolean("smsEnabled").default(false).notNull(),
+  whatsappEnabled: boolean("whatsappEnabled").default(false).notNull(),
+  timing: varchar("timing", { length: 64 }).default("Instant").notNull(),
+  priceTarget: int("priceTarget").default(450).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("notification_preferences_user_idx").on(table.userId)]);
+
+export const notificationDeliveryLogs = mysqlTable("notification_delivery_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  provider: varchar("provider", { length: 64 }).notNull(),
+  channel: mysqlEnum("channel", ["email", "sms"]).notNull(),
+  eventType: varchar("eventType", { length: 64 }).notNull(),
+  recipientMasked: varchar("recipientMasked", { length: 320 }).notNull(),
+  subject: varchar("subject", { length: 180 }).notNull(),
+  message: text("message").notNull(),
+  status: mysqlEnum("status", ["simulated", "queued", "failed"]).default("simulated").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [index("notification_delivery_logs_user_idx").on(table.userId)]);
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type NotificationDeliveryLog = typeof notificationDeliveryLogs.$inferSelect;

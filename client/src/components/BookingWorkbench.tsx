@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Armchair,
   BellRing,
@@ -38,6 +38,7 @@ import {
   type NotificationEventKey,
 } from "@/lib/notificationLogic";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 type PrototypePage =
   | "Home / Flight Search"
@@ -133,7 +134,47 @@ export default function BookingWorkbench() {
   const [notificationTiming, setNotificationTiming] = useState("Instant");
   const [notificationFocus, setNotificationFocus] = useState<NotificationEventKey>("priceDrop");
   const [notificationRead, setNotificationRead] = useState<Record<string, boolean>>({ price: false, checkin: false, calendar: true });
+  const [notificationHydrated, setNotificationHydrated] = useState(false);
+  const { isAuthenticated } = useAuth();
   const { data: inventory, isFetching: inventoryLoading } = trpc.inventory.search.useQuery({ refresh: inventoryRefresh });
+  const notificationQuery = trpc.notification.get.useQuery(undefined, { enabled: isAuthenticated });
+  const trpcUtils = trpc.useUtils();
+  const saveNotificationPreferences = trpc.notification.savePreferences.useMutation({
+    onSuccess: result => {
+      setNotificationHydrated(true);
+      toast.success(result.persisted ? "Notification settings saved" : "Notification settings saved for this prototype session");
+      trpcUtils.notification.get.invalidate();
+    },
+    onError: () => toast.error("Sign in to save notification settings across sessions"),
+  });
+  const sendMockNotification = trpc.notification.sendMock.useMutation({
+    onSuccess: result => {
+      toast.success(`${result.delivery.channel.toUpperCase()} notification simulated`, { description: result.delivery.recipientMasked });
+      trpcUtils.notification.get.invalidate();
+    },
+    onError: () => toast.error("Sign in to send a mock Email or SMS notification"),
+  });
+
+  useEffect(() => {
+    const preferences = notificationQuery.data?.preferences;
+    if (!preferences || notificationHydrated) return;
+    setNotificationEvents({
+      priceDrop: preferences.priceDropEnabled,
+      flightStatus: preferences.flightStatusEnabled,
+      checkIn: preferences.checkInEnabled,
+      gate: preferences.gateEnabled,
+      calendar: preferences.calendarEnabled,
+    });
+    setNotificationChannels(([
+      preferences.inAppEnabled && "In-app",
+      preferences.emailEnabled && "Email",
+      preferences.smsEnabled && "SMS",
+      preferences.whatsappEnabled && "WhatsApp",
+    ].filter(Boolean)) as DeliveryChannel[]);
+    setNotificationTiming(preferences.timing);
+    setPriceTarget(preferences.priceTarget);
+    setNotificationHydrated(true);
+  }, [notificationHydrated, notificationQuery.data?.preferences]);
 
   const selectedSeatData = cabinRows.flatMap(row => row.seats).find(seat => seat.code === selectedSeat);
   const seatSurcharge = selectedSeatData ? seatSurcharges[selectedSeatData.kind] : 0;
@@ -148,6 +189,29 @@ export default function BookingWorkbench() {
   const unreadAlerts = unreadNotificationCount(alertItems);
   const toggleNotificationEvent = (event: NotificationEventKey) => setNotificationEvents(active => ({ ...active, [event]: !active[event] }));
   const toggleNotificationChannel = (channel: DeliveryChannel) => setNotificationChannels(active => active.includes(channel) ? active.filter(item => item !== channel) : [...active, channel]);
+  const persistNotificationPreferences = () => {
+    saveNotificationPreferences.mutate({
+      priceDropEnabled: notificationEvents.priceDrop,
+      flightStatusEnabled: notificationEvents.flightStatus,
+      checkInEnabled: notificationEvents.checkIn,
+      gateEnabled: notificationEvents.gate,
+      calendarEnabled: notificationEvents.calendar,
+      inAppEnabled: notificationChannels.includes("In-app"),
+      emailEnabled: notificationChannels.includes("Email"),
+      smsEnabled: notificationChannels.includes("SMS"),
+      whatsappEnabled: notificationChannels.includes("WhatsApp"),
+      timing: notificationTiming,
+      priceTarget,
+    });
+  };
+  const sendMockDelivery = (channel: "email" | "sms") => {
+    sendMockNotification.mutate({
+      channel,
+      eventType: notificationEventLabels[notificationFocus],
+      message: `${notificationPreview(notificationFocus, notificationTiming, notificationChannels)} · JFK → LIS`,
+    });
+  };
+  const deliveryHistory = notificationQuery.data?.deliveryHistory ?? [];
   const toggleFilter = (value: string) => setFilters(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
   const toggleAddOn = (value: string) => setSelectedAddOns(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
   const toggleChannel = (value: string) => setConfirmationChannels(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
@@ -251,11 +315,14 @@ export default function BookingWorkbench() {
 
         {page === "Notification Center" && <div className="prototype-panel notification-center-panel">
           <div className="panel-intro"><div><span className="panel-eyebrow">Custom notifications</span><h3>Choose what matters. Hear it your way.</h3></div><div className="notification-count"><BellRing size={18} />{unreadAlerts} unread</div></div>
+          <div className={`notification-persistence-banner ${isAuthenticated ? "is-connected" : ""}`}><ShieldCheck size={16} /><span>{isAuthenticated ? (notificationQuery.isLoading ? "Loading your saved notification settings…" : "Signed in — preferences and delivery history are connected to your account.") : "Prototype mode — sign in to save preferences and delivery history across sessions."}</span></div>
           <div className="notification-layout">
             <div className="notification-settings-block"><span className="sub-label">Alert types</span><div className="notification-event-list">{(Object.keys(notificationEventLabels) as NotificationEventKey[]).map(event => <button key={event} className={`${notificationEvents[event] ? "is-enabled" : ""} ${notificationFocus === event ? "is-focused" : ""}`} onClick={() => { setNotificationFocus(event); toggleNotificationEvent(event); }}><span><strong>{notificationEventLabels[event]}</strong><small>{event === "priceDrop" ? "Route target reached" : event === "flightStatus" ? "Delays, gates, cancellations" : event === "checkIn" ? "When check-in becomes available" : event === "gate" ? "At gate assignment" : "Pre-flight itinerary reminder"}</small></span><i>{notificationEvents[event] ? "On" : "Off"}</i></button>)}</div></div>
-            <div className="notification-settings-block"><span className="sub-label">Delivery and timing</span><div className="notification-channel-list">{(["In-app", "Email", "SMS", "WhatsApp"] as DeliveryChannel[]).map(channel => <button key={channel} className={notificationChannels.includes(channel) ? "is-selected" : ""} onClick={() => toggleNotificationChannel(channel)}>{channel}<Check size={14} /></button>)}</div><label className="notification-timing">Timing<select value={notificationTiming} onChange={event => setNotificationTiming(event.target.value)}><option>Instant</option><option>At gate assignment</option><option>24 hours before departure</option><option>3 hours before departure</option></select></label><div className="delivery-preview"><span>Delivery preview</span><strong>{notificationPreview(notificationFocus, notificationTiming, notificationChannels)}</strong><p>{notificationFocus === "priceDrop" ? "JFK → LIS is now ready for a price-watch update." : "SK 218 · New York to Lisbon · Aug 28"}</p><button onClick={() => toast.info("Test notification preview sent", { description: notificationPreview(notificationFocus, notificationTiming, notificationChannels) })}>Send test notification</button></div></div>
+            <div className="notification-settings-block"><span className="sub-label">Delivery and timing</span><div className="notification-channel-list">{(["In-app", "Email", "SMS", "WhatsApp"] as DeliveryChannel[]).map(channel => <button key={channel} className={notificationChannels.includes(channel) ? "is-selected" : ""} onClick={() => toggleNotificationChannel(channel)}>{channel}<Check size={14} /></button>)}</div><label className="notification-timing">Timing<select value={notificationTiming} onChange={event => setNotificationTiming(event.target.value)}><option>Instant</option><option>At gate assignment</option><option>24 hours before departure</option><option>3 hours before departure</option></select></label><div className="delivery-preview"><span>Delivery preview</span><strong>{notificationPreview(notificationFocus, notificationTiming, notificationChannels)}</strong><p>{notificationFocus === "priceDrop" ? "JFK → LIS is now ready for a price-watch update." : "SK 218 · New York to Lisbon · Aug 28"}</p><div className="mock-delivery-actions"><button onClick={() => sendMockDelivery("email")} disabled={sendMockNotification.isPending}>Send mock Email</button><button onClick={() => sendMockDelivery("sms")} disabled={sendMockNotification.isPending}>Send mock SMS</button></div></div></div>
           </div>
+          <button className="save-notification-settings" onClick={persistNotificationPreferences} disabled={saveNotificationPreferences.isPending}>{saveNotificationPreferences.isPending ? "Saving notification settings…" : "Save notification settings"}</button>
           <div className="alert-center"><div className="alert-center-heading"><div><span className="sub-label">In-app alert center</span><strong>Flight and route updates</strong></div><button onClick={() => setNotificationRead({ price: true, checkin: true, calendar: true })}>Mark all read</button></div>{alertItems.map(alert => <article className={`in-app-alert ${alert.read ? "is-read" : ""}`} key={alert.id}><span className="alert-context">{alert.context}</span><div><strong>{alert.title}</strong><p>{alert.detail}</p></div><button onClick={() => setNotificationRead(active => ({ ...active, [alert.id]: true }))}>{alert.read ? "Read" : "Mark read"}</button></article>)}</div>
+          <div className="delivery-history"><div className="alert-center-heading"><div><span className="sub-label">Mock provider activity</span><strong>Delivery history</strong></div><span>{deliveryHistory.length} logged</span></div>{deliveryHistory.length > 0 ? deliveryHistory.map(delivery => <article key={delivery.id} className="delivery-history-item"><span>{delivery.channel.toUpperCase()}</span><div><strong>{delivery.subject}</strong><p>{delivery.provider} · {delivery.recipientMasked} · {delivery.status}</p></div></article>) : <p>No mock Email or SMS sends yet. Send one from the delivery preview to create a history record.</p>}</div>
         </div>}
 
         <div className="prototype-stepper" aria-label="Booking workflow status">{["Passenger Details", "Seats & Add-ons", "Payment", "Booking Confirmation"].map((step, index) => <span key={step} className={bookingStepFor(page) > index ? "is-complete" : ""}>{index + 1}. {step}</span>)}</div>

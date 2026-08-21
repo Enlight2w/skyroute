@@ -8,6 +8,13 @@
       "when": 1787331123224,
       "tag": "0000_fast_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1787334100445,
+      "tag": "0001_empty_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }

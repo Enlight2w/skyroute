@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, notificationDeliveryLogs, notificationPreferences, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,73 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export type NotificationPreferenceInput = {
+  priceDropEnabled: boolean;
+  flightStatusEnabled: boolean;
+  checkInEnabled: boolean;
+  gateEnabled: boolean;
+  calendarEnabled: boolean;
+  inAppEnabled: boolean;
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  whatsappEnabled: boolean;
+  timing: string;
+  priceTarget: number;
+};
+
+export const defaultNotificationPreferences: NotificationPreferenceInput = {
+  priceDropEnabled: true,
+  flightStatusEnabled: true,
+  checkInEnabled: true,
+  gateEnabled: true,
+  calendarEnabled: true,
+  inAppEnabled: true,
+  emailEnabled: true,
+  smsEnabled: false,
+  whatsappEnabled: false,
+  timing: "Instant",
+  priceTarget: 450,
+};
+
+export async function getNotificationPreferences(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+  return result[0];
+}
+
+export async function saveNotificationPreferences(userId: number, settings: NotificationPreferenceInput) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(notificationPreferences).values({ userId, ...settings }).onDuplicateKeyUpdate({ set: settings });
+  return getNotificationPreferences(userId);
+}
+
+export async function createNotificationDeliveryLog(input: {
+  userId: number;
+  provider: string;
+  channel: "email" | "sms";
+  eventType: string;
+  recipientMasked: string;
+  subject: string;
+  message: string;
+  status: "simulated" | "queued" | "failed";
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(notificationDeliveryLogs).values(input);
+  const result = await db.select().from(notificationDeliveryLogs)
+    .where(eq(notificationDeliveryLogs.userId, input.userId))
+    .orderBy(desc(notificationDeliveryLogs.id))
+    .limit(1);
+  return result[0];
+}
+
+export async function listNotificationDeliveryLogs(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(notificationDeliveryLogs)
+    .where(eq(notificationDeliveryLogs.userId, userId))
+    .orderBy(desc(notificationDeliveryLogs.id))
+    .limit(12);
+}

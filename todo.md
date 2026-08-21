@@ -40,3 +40,9 @@
 - [x] Add a custom notification center with configurable price-drop, flight-status, check-in, gate, and calendar reminder controls.
 - [x] Add notification delivery previews, read-state handling, and route/flight context to in-app alerts.
 - [x] Add tests and responsive validation for custom notification preferences and alert-center interactions.
+- [x] Create database tables and migrations for authenticated notification preferences and mock notification delivery logs.
+- [x] Add authenticated backend procedures to load, save, and update each user’s notification preferences across sessions.
+- [x] Add safe mock Email and SMS delivery adapters with notification metadata, recipient masking, and delivery-history records.
+- [x] Connect the Notification Center to persisted settings, send actions, and delivery-history feedback.
+- [x] Add tests and responsive validation for notification persistence and mock Email/SMS delivery flows.
+- [x] Add mocked backend contract coverage for authenticated notification preference persistence and delivery-log writes.
