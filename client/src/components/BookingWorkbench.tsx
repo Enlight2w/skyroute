@@ -30,6 +30,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { bookingStepFor, formatBookingPrice, type Currency } from "@/lib/bookingPrototypeLogic";
+import {
+  notificationEventLabels,
+  notificationPreview,
+  unreadNotificationCount,
+  type DeliveryChannel,
+  type NotificationEventKey,
+} from "@/lib/notificationLogic";
 import { trpc } from "@/lib/trpc";
 
 type PrototypePage =
@@ -41,7 +48,8 @@ type PrototypePage =
   | "Seats & Add-ons"
   | "Payment"
   | "Booking Confirmation"
-  | "Manage Trip";
+  | "Manage Trip"
+  | "Notification Center";
 
 const pages: PrototypePage[] = [
   "Home / Flight Search",
@@ -53,6 +61,7 @@ const pages: PrototypePage[] = [
   "Payment",
   "Booking Confirmation",
   "Manage Trip",
+  "Notification Center",
 ];
 
 const prototypePageByHash: Record<string, PrototypePage> = {
@@ -65,6 +74,7 @@ const prototypePageByHash: Record<string, PrototypePage> = {
   "#payment": "Payment",
   "#booking-confirmation": "Booking Confirmation",
   "#manage-trip": "Manage Trip",
+  "#notification-center": "Notification Center",
 };
 
 function getPrototypePageFromHash(): PrototypePage {
@@ -112,6 +122,17 @@ export default function BookingWorkbench() {
   const [inventoryRefresh, setInventoryRefresh] = useState(0);
   const [routeSaved, setRouteSaved] = useState(false);
   const [priceTarget, setPriceTarget] = useState(450);
+  const [notificationEvents, setNotificationEvents] = useState<Record<NotificationEventKey, boolean>>({
+    priceDrop: true,
+    flightStatus: true,
+    checkIn: true,
+    gate: true,
+    calendar: true,
+  });
+  const [notificationChannels, setNotificationChannels] = useState<DeliveryChannel[]>(["In-app", "Email"]);
+  const [notificationTiming, setNotificationTiming] = useState("Instant");
+  const [notificationFocus, setNotificationFocus] = useState<NotificationEventKey>("priceDrop");
+  const [notificationRead, setNotificationRead] = useState<Record<string, boolean>>({ price: false, checkin: false, calendar: true });
   const { data: inventory, isFetching: inventoryLoading } = trpc.inventory.search.useQuery({ refresh: inventoryRefresh });
 
   const selectedSeatData = cabinRows.flatMap(row => row.seats).find(seat => seat.code === selectedSeat);
@@ -119,6 +140,14 @@ export default function BookingWorkbench() {
   const total = useMemo(() => 462 + selectedAddOns.length * 18 + seatSurcharge + (selectedFare === "Flex" ? 136 : selectedFare === "Business" ? 524 : 0), [selectedAddOns, selectedFare, seatSurcharge]);
   const primaryQuote = inventory?.flights[0];
   const priceDropReached = Boolean(routeSaved && primaryQuote && primaryQuote.totalPrice <= priceTarget);
+  const alertItems = [
+    { id: "price", event: "priceDrop" as const, context: "JFK → LIS", title: priceDropReached ? `Price moved to ${formatBookingPrice(primaryQuote?.totalPrice ?? 0, currency)}` : `Price Watch is set below ${formatBookingPrice(priceTarget, currency)}`, detail: priceDropReached ? "Your target has been met." : "Refresh the mock quote to simulate a change." },
+    { id: "checkin", event: "checkIn" as const, context: "SK 218 · JFK → LIS", title: "Check-in opens in 24 hours", detail: "We will notify you when online check-in is available." },
+    { id: "calendar", event: "calendar" as const, context: "Aug 28 · 09:15", title: "Calendar reminder is ready", detail: "A three-hour pre-flight reminder is attached to your itinerary." },
+  ].filter(alert => notificationEvents[alert.event]).map(alert => ({ ...alert, read: notificationRead[alert.id] }));
+  const unreadAlerts = unreadNotificationCount(alertItems);
+  const toggleNotificationEvent = (event: NotificationEventKey) => setNotificationEvents(active => ({ ...active, [event]: !active[event] }));
+  const toggleNotificationChannel = (channel: DeliveryChannel) => setNotificationChannels(active => active.includes(channel) ? active.filter(item => item !== channel) : [...active, channel]);
   const toggleFilter = (value: string) => setFilters(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
   const toggleAddOn = (value: string) => setSelectedAddOns(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
   const toggleChannel = (value: string) => setConfirmationChannels(active => active.includes(value) ? active.filter(item => item !== value) : [...active, value]);
@@ -216,8 +245,17 @@ export default function BookingWorkbench() {
 
         {page === "Manage Trip" && <div className="prototype-panel">
           <div className="panel-intro"><div><span className="panel-eyebrow">Manage Trip</span><h3>Your journey stays flexible after booking.</h3></div><Ticket size={25} /></div>
-          <div className="manage-grid"><button onClick={() => toast.message("Change-flight options opened")}><CalendarDays />Change flight</button><button onClick={() => toast.message("Cancellation and refund policy opened")}><ReceiptText />Cancel / refund</button><button onClick={() => advance("Seats & Add-ons")}><Armchair />Choose seats</button><button onClick={() => advance("Seats & Add-ons")}><Luggage />Add baggage</button><button onClick={() => toast.message("Check-in becomes available 24 hours before departure")}><CircleCheck />Check in</button><button onClick={() => toast.message("Boarding pass becomes available after check-in")}><Download />Download boarding pass</button></div>
+          <div className="manage-grid"><button onClick={() => toast.message("Change-flight options opened")}><CalendarDays />Change flight</button><button onClick={() => toast.message("Cancellation and refund policy opened")}><ReceiptText />Cancel / refund</button><button onClick={() => advance("Seats & Add-ons")}><Armchair />Choose seats</button><button onClick={() => advance("Seats & Add-ons")}><Luggage />Add baggage</button><button onClick={() => toast.message("Check-in becomes available 24 hours before departure")}><CircleCheck />Check in</button><button onClick={() => toast.message("Boarding pass becomes available after check-in")}><Download />Download boarding pass</button><button onClick={() => advance("Notification Center")}><BellRing />Custom notifications <span className="manage-notification-count">{unreadAlerts}</span></button></div>
           <div className="alert-control"><BellRing size={20} /><div><strong>Flight status alerts</strong><span>Arrival, gate, and schedule changes shown in the traveller’s local time zone.</span></div><button className={alertsEnabled ? "is-on" : ""} onClick={() => setAlertsEnabled(value => !value)}>{alertsEnabled ? "On" : "Off"}</button></div>
+        </div>}
+
+        {page === "Notification Center" && <div className="prototype-panel notification-center-panel">
+          <div className="panel-intro"><div><span className="panel-eyebrow">Custom notifications</span><h3>Choose what matters. Hear it your way.</h3></div><div className="notification-count"><BellRing size={18} />{unreadAlerts} unread</div></div>
+          <div className="notification-layout">
+            <div className="notification-settings-block"><span className="sub-label">Alert types</span><div className="notification-event-list">{(Object.keys(notificationEventLabels) as NotificationEventKey[]).map(event => <button key={event} className={`${notificationEvents[event] ? "is-enabled" : ""} ${notificationFocus === event ? "is-focused" : ""}`} onClick={() => { setNotificationFocus(event); toggleNotificationEvent(event); }}><span><strong>{notificationEventLabels[event]}</strong><small>{event === "priceDrop" ? "Route target reached" : event === "flightStatus" ? "Delays, gates, cancellations" : event === "checkIn" ? "When check-in becomes available" : event === "gate" ? "At gate assignment" : "Pre-flight itinerary reminder"}</small></span><i>{notificationEvents[event] ? "On" : "Off"}</i></button>)}</div></div>
+            <div className="notification-settings-block"><span className="sub-label">Delivery and timing</span><div className="notification-channel-list">{(["In-app", "Email", "SMS", "WhatsApp"] as DeliveryChannel[]).map(channel => <button key={channel} className={notificationChannels.includes(channel) ? "is-selected" : ""} onClick={() => toggleNotificationChannel(channel)}>{channel}<Check size={14} /></button>)}</div><label className="notification-timing">Timing<select value={notificationTiming} onChange={event => setNotificationTiming(event.target.value)}><option>Instant</option><option>At gate assignment</option><option>24 hours before departure</option><option>3 hours before departure</option></select></label><div className="delivery-preview"><span>Delivery preview</span><strong>{notificationPreview(notificationFocus, notificationTiming, notificationChannels)}</strong><p>{notificationFocus === "priceDrop" ? "JFK → LIS is now ready for a price-watch update." : "SK 218 · New York to Lisbon · Aug 28"}</p><button onClick={() => toast.info("Test notification preview sent", { description: notificationPreview(notificationFocus, notificationTiming, notificationChannels) })}>Send test notification</button></div></div>
+          </div>
+          <div className="alert-center"><div className="alert-center-heading"><div><span className="sub-label">In-app alert center</span><strong>Flight and route updates</strong></div><button onClick={() => setNotificationRead({ price: true, checkin: true, calendar: true })}>Mark all read</button></div>{alertItems.map(alert => <article className={`in-app-alert ${alert.read ? "is-read" : ""}`} key={alert.id}><span className="alert-context">{alert.context}</span><div><strong>{alert.title}</strong><p>{alert.detail}</p></div><button onClick={() => setNotificationRead(active => ({ ...active, [alert.id]: true }))}>{alert.read ? "Read" : "Mark read"}</button></article>)}</div>
         </div>}
 
         <div className="prototype-stepper" aria-label="Booking workflow status">{["Passenger Details", "Seats & Add-ons", "Payment", "Booking Confirmation"].map((step, index) => <span key={step} className={bookingStepFor(page) > index ? "is-complete" : ""}>{index + 1}. {step}</span>)}</div>

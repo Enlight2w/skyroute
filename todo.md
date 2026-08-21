@@ -36,3 +36,7 @@
 - [x] Add saved favorite routes with configurable price targets and visible price-drop alert feedback.
 - [x] Add a mock API-backed airline-inventory experience with simulated availability, dynamic pricing, loading, and refresh controls in search results.
 - [x] Add tests and responsive validation for the seat, route alert, and mock inventory enhancements.
+- [x] Define customizable notification event types, channels, timing, and alert status for the SkyRoute prototype.
+- [x] Add a custom notification center with configurable price-drop, flight-status, check-in, gate, and calendar reminder controls.
+- [x] Add notification delivery previews, read-state handling, and route/flight context to in-app alerts.
+- [x] Add tests and responsive validation for custom notification preferences and alert-center interactions.
