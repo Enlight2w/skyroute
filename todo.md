@@ -46,3 +46,6 @@
 - [x] Connect the Notification Center to persisted settings, send actions, and delivery-history feedback.
 - [x] Add tests and responsive validation for notification persistence and mock Email/SMS delivery flows.
 - [x] Add mocked backend contract coverage for authenticated notification preference persistence and delivery-log writes.
+- [x] Investigate the deployment timeout using production and development logs plus the deployed build configuration.
+- [x] Apply a focused code or configuration fix if the timeout is project-caused.
+- [x] Rebuild, validate runtime startup, and save a corrected publishable checkpoint.
