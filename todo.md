@@ -59,3 +59,5 @@
 - [x] Add authenticated API-key generation, one-time disclosure, verification, listing, and revocation backend procedures.
 - [x] Add an authenticated API-key management interface with a copy-once secret reveal and revoke controls.
 - [x] Add security and responsive validation for the API-key capability.
+- [x] Enforce the inventory:read API-key scope on a keyed external inventory search endpoint with unauthorized and forbidden responses.
+- [x] Add regression tests for missing, insufficient, and valid API-key scopes; re-run tests, TypeScript checks, and production build.

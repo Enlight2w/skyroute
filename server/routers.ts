@@ -16,6 +16,7 @@ import { createMockNotificationDelivery } from "./mockNotificationProvider";
 import { TRPCError } from "@trpc/server";
 import { API_KEY_SCOPES, createApiKey, hashApiKey, type ApiKeyScope, verifyApiKey } from "./apiKeyService";
 import { createApiKeyRecord, findValidApiKeyRecord, listApiKeyRecords, markApiKeyUsed, revokeApiKeyRecord } from "./db";
+import type { TrpcContext } from "./_core/context";
 
 const notificationPreferencesSchema = z.object({
   priceDropEnabled: z.boolean(),
@@ -40,6 +41,27 @@ export async function verifySkyRouteApiKey(candidate: string) {
   return { userId: record.userId, scopes: JSON.parse(record.scopes) as ApiKeyScope[] };
 }
 
+function getRequestApiKey(req: TrpcContext["req"]) {
+  const header = req.headers?.["x-api-key"];
+  return Array.isArray(header) ? header[0] : header;
+}
+
+async function requireApiKeyScope(req: TrpcContext["req"], scope: ApiKeyScope) {
+  const candidate = getRequestApiKey(req);
+  if (!candidate) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "An x-api-key header is required" });
+  }
+
+  const verified = await verifySkyRouteApiKey(candidate);
+  if (!verified) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "The API key is invalid or revoked" });
+  }
+  if (!verified.scopes.includes(scope)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: `The API key does not grant ${scope}` });
+  }
+  return verified;
+}
+
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -57,6 +79,12 @@ export const appRouter = router({
     search: publicProcedure
       .input(z.object({ refresh: z.number().int().min(0).max(50) }))
       .query(({ input }) => getMockInventory(input.refresh)),
+    searchExternal: publicProcedure
+      .input(z.object({ refresh: z.number().int().min(0).max(50) }))
+      .query(async ({ ctx, input }) => {
+        await requireApiKeyScope(ctx.req, "inventory:read");
+        return getMockInventory(input.refresh);
+      }),
   }),
   notification: router({
     get: protectedProcedure.query(async ({ ctx }) => {
