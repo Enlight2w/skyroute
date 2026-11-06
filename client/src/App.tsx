@@ -1,16 +1,19 @@
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import { LegalAccessGate, LegalTermsPage, readLegalAcceptance } from "./pages/LegalTerms";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/legal/terms"} component={LegalTermsPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -24,6 +27,13 @@ function Router() {
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
+  const [location, setLocation] = useLocation();
+  const [accepted, setAccepted] = useState(() => Boolean(readLegalAcceptance()));
+
+  useEffect(() => {
+    setAccepted(Boolean(readLegalAcceptance()));
+  }, [location]);
+
   return (
     <ErrorBoundary>
       <ThemeProvider
@@ -33,6 +43,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          {location !== "/legal/terms" && !accepted ? <LegalAccessGate onAccept={() => { setAccepted(true); setLocation("/"); }} /> : null}
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

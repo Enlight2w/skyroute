@@ -61,3 +61,5 @@
 - [x] Add security and responsive validation for the API-key capability.
 - [x] Enforce the inventory:read API-key scope on a keyed external inventory search endpoint with unauthorized and forbidden responses.
 - [x] Add regression tests for missing, insufficient, and valid API-key scopes; re-run tests, TypeScript checks, and production build.
+- [x] Research and draft a global Terms of Service core with regional addenda for all requested market groups.
+- [x] Add a pre-access affirmative clickwrap gate, versioned local acceptance record, full legal terms page, regional source links, and persistent footer access.

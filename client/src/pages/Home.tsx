@@ -324,7 +324,7 @@ export default function Home() {
         </section>
         <BookingWorkbench />
       </main>
-      <footer className="site-shell footer">SkyRoute · Transparent fares, flexible dates, and stress-free trip management.</footer>
+      <footer className="site-shell footer">SkyRoute · Transparent fares, flexible dates, and stress-free trip management. <a href="/legal/terms">Terms of Service</a></footer>
     </div>
   );
 }
